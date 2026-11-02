@@ -13,7 +13,6 @@
   --tk-text-subtle: rgba(35, 31, 32, 0.8);
   --tk-text-very-subtle: rgba(35, 31, 32, 0.5);
   --tk-panel-bg: #f6f7f8; /* sidebar */
-  --tk-bg-secondary: #f6f6f6;
   --tk-list-border: #dddddd;
   --tk-list-read-bg: #fafafa;
   --tk-list-hover-bg: #f5f5f5;
@@ -23,15 +22,7 @@
   --tree-view-bg: #fff !important;
   --selected-item-color: var(--tk-blue-dark) !important;
   --selected-item-text-color: #fff !important;
-
-  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
-
-:root :is(button, input, select, textarea, label, menulist, toolbarbutton, .button) {
-  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-}
-
-/* ---------- Topbar (unified toolbar) ---------- */
 
 /* ---------- Folder pane ---------- */
 #folderPane,
@@ -79,17 +70,9 @@
 }
 
 /* Selected folder: no background, blue text + blue icon */
-#folderTree li.selected > .container,
-#folderTree:focus-within li.selected > .container {
+#folderTree li.selected > .container {
   background: transparent !important;
   color: var(--tk-blue-dark) !important;
-}
-
-/* Monochrome icons instead of Thunderbird's coloured ones */
-#folderTree li > .container > .icon {
-  --icon-color: rgba(35, 31, 32, 0.7) !important;
-  fill: transparent !important;
-  stroke: var(--icon-color) !important;
 }
 
 /* Account names → small grey headings */
@@ -112,15 +95,9 @@
 
 /* Counters: blue box with white text */
 #folderTree .folder-count-badge {
-  border-radius: 2px !important;
-  font-size: 11px !important;
   font-weight: 600 !important;
-  padding: 0 4px !important;
-  line-height: 15px !important;
-  min-inline-size: 0 !important;
 }
-#folderTree .unread-count,
-#folderTree .new-messages > .container > .unread-count {
+#folderTree .unread-count {
   background: var(--tk-blue-dark) !important;
   color: #fff !important;
   border: none !important;
@@ -249,16 +226,11 @@ hr[is="pane-splitter"] {
 
 /* ---------- Reading pane: message header (about:message) ---------- */
 
-#messageHeader #expandedfromBox {
-  font-weight: 500 !important;
-}
 #messageHeader .message-header-row:not(#headerSenderToolbarContainer, #headerSubjectSecurityContainer),
 #messageHeader .message-header-datetime {
   color: var(--tk-text-very-subtle) !important;
   font-size: 13px !important;
 }
-
-/* Buttons: light, borderless, soft shadow */
 
 #messageHeader .message-header-view-button:hover {
   background: #f2f2f2 !important;
@@ -289,7 +261,6 @@ hr[is="pane-splitter"] {
 }
 #messageHeader {
   background: #fff !important;
-  border-bottom: 1px solid var(--tk-list-border) !important;
   color: var(--tk-text) !important;
   border: none !important;
   border-radius: 4px 4px 0 0 !important;
@@ -333,8 +304,6 @@ hr[is="pane-splitter"] {
   color: var(--tk-text-very-subtle) !important;
 }
 
-/* Message body: white, rounded bottom corners */
-
 /* ---- Card details (header + body form one white card) ---- */
 #singleMessage {
   position: relative !important;
@@ -377,16 +346,11 @@ hr[is="pane-splitter"] {
   border-radius: 4px 0 0 4px !important;
   min-width: 34px !important;
 }
-#messageHeader #hdrReplyButton > .toolbarbutton-text,
-#messageHeader #hdrReplyButton > label {
-  display: none !important;
-}
 #messageHeader #hdrMoreButton {
   border-radius: 0 4px 4px 0 !important;
   margin-inline-start: -1px !important;
 }
-#messageHeader #hdrMoreButton > .toolbarbutton-text,
-#messageHeader #hdrMoreButton > label {
+#messageHeader :is(#hdrReplyButton, #hdrMoreButton) > :is(.toolbarbutton-text, label) {
   display: none !important;
 }
 #messageHeader .message-header-view-button {
@@ -447,6 +411,10 @@ hr[is="pane-splitter"] {
   line-height: 16px !important;
   border-radius: 2px !important;
 }
+/* Counters only on inboxes – not on Drafts, Sent, Archive, Junk, Trash, accounts, etc. */
+#folderTree li:not([data-folder-type="inbox"]) > .container > .folder-count-badge {
+  display: none !important;
+}
 
 /* Small grey triangle as expand/collapse twisty */
 #folderTree .twisty .twisty-icon {
@@ -461,8 +429,6 @@ hr[is="pane-splitter"] {
   content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
   inline-size: 16px !important;
   block-size: 16px !important;
-  fill: none !important;
-  stroke: none !important;
   background-color: rgba(35, 31, 32, 0.85) !important;
   mask: url("icons/folder.svg") center / 16px 16px no-repeat !important;
 }
@@ -473,14 +439,10 @@ hr[is="pane-splitter"] {
 #folderTree li[data-folder-type="junk"] > .container > .icon { mask-image: url("icons/spam.svg") !important; }
 #folderTree li[data-folder-type="archive"] > .container > .icon { mask-image: url("icons/archive.svg") !important; }
 #folderTree li.selected > .container > .icon {
-  --icon-color: var(--tk-blue-dark) !important;
   background-color: var(--tk-blue-dark) !important;
 }
 
 /* ---------- Message list: row metrics ---------- */
-#threadTree .card-container {
-  padding-inline: 4px 19px !important;
-}
 #threadTree .card-container .thread-card-column {
   gap: 0 !important;
   padding-block: 10px 0 !important;
@@ -521,6 +483,9 @@ hr[is="pane-splitter"] {
 #threadTree .card-container .thread-card-row > .attachment-icon {
   margin-inline: 8px 8px !important;
   align-self: center !important;
+}
+#threadTree .card-container .thread-card-row .date {
+  padding-inline-start: 6px !important;
 }
 
 /* ==========================================================================
@@ -604,10 +569,6 @@ hr[is="pane-splitter"] {
   border-bottom: 1px solid #eeeeee !important;
 }
 
-#threadTree .card-container .thread-card-row .date {
-  padding-inline-start: 6px !important;
-}
-
 /* Send bar at the bottom */
 #composeToolbar2 {
   position: fixed !important;
@@ -631,91 +592,31 @@ hr[is="pane-splitter"] {
    ========================================================================== */
 #unifiedToolbar {
   background: #fff !important;
-  border-bottom: 1px solid var(--tk-list-border) !important;
   border-block-end: 1px solid #e3e3e3 !important;
 }
-.unified-toolbar .write-message .button-icon {
+.unified-toolbar :is(.write-message, .archive, .junk, .delete, .mark-as, .move-to, .tag-message, .reply, .reply-all, .forward-inline, .address-book) .button-icon {
   content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
   inline-size: 16px !important;
   block-size: 16px !important;
   background-color: rgba(35, 31, 32, 0.8) !important;
   mask: url("icons/toolbar-compose.svg") center / 16px 16px no-repeat !important;
 }
-.unified-toolbar .archive .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-archive.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .junk .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-spam.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .delete .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-trash.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .mark-as .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-markasunread.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .move-to .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-movetofolder.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .tag-message .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-tag.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .reply .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-reply.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .reply-all .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-reply-all.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .forward-inline .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-share.svg") center / 16px 16px no-repeat !important;
-}
-.unified-toolbar .address-book .button-icon {
-  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
-  inline-size: 16px !important;
-  block-size: 16px !important;
-  background-color: rgba(35, 31, 32, 0.8) !important;
-  mask: url("icons/toolbar-person-sidebar.svg") center / 16px 16px no-repeat !important;
-}
+.unified-toolbar .write-message .button-icon { mask-image: url("icons/toolbar-compose.svg") !important; }
+.unified-toolbar .archive .button-icon { mask-image: url("icons/toolbar-archive.svg") !important; }
+.unified-toolbar .junk .button-icon { mask-image: url("icons/toolbar-spam.svg") !important; }
+.unified-toolbar .delete .button-icon { mask-image: url("icons/toolbar-trash.svg") !important; }
+.unified-toolbar .mark-as .button-icon { mask-image: url("icons/toolbar-markasunread.svg") !important; }
+.unified-toolbar .move-to .button-icon { mask-image: url("icons/toolbar-movetofolder.svg") !important; }
+.unified-toolbar .tag-message .button-icon { mask-image: url("icons/toolbar-tag.svg") !important; }
+.unified-toolbar .reply .button-icon { mask-image: url("icons/toolbar-reply.svg") !important; }
+.unified-toolbar .reply-all .button-icon { mask-image: url("icons/toolbar-reply-all.svg") !important; }
+.unified-toolbar .forward-inline .button-icon { mask-image: url("icons/toolbar-share.svg") !important; }
+.unified-toolbar .address-book .button-icon { mask-image: url("icons/toolbar-person-sidebar.svg") !important; }
 .unified-toolbar .search-button-icon {
   content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
   inline-size: 14px !important;
   block-size: 14px !important;
-  background-color: rgba(35, 31, 32, 0.5) !important;
+  background-color: var(--tk-text-very-subtle) !important;
   mask: url("icons/searchloupe.svg") center / 14px 14px no-repeat !important;
 }
 #unifiedToolbarContent .unified-toolbar-button {
@@ -757,8 +658,8 @@ hr[is="pane-splitter"] {
 #unifiedToolbarContent .unified-toolbar-button:is(.archive, .move-to) {
   border-radius: 3px 0 0 3px !important;
 }
-#unifiedToolbarContent :is(.junk) .unified-toolbar-button,
-#unifiedToolbarContent .unified-toolbar-button:is(.junk) {
+#unifiedToolbarContent .junk .unified-toolbar-button,
+#unifiedToolbarContent .unified-toolbar-button.junk {
   border-radius: 0 !important;
 }
 #unifiedToolbarContent :is(.delete, .tag-message) .unified-toolbar-button,
@@ -801,8 +702,7 @@ menupopup > :is(menuitem, menu)[_moz-menuactive="true"]:not([disabled="true"]) {
 }
 
 /* "N replies" button in a selected (blue) row: white outline and text instead of light grey */
-#threadTree .card-layout.selected button.twisty.thread-card-button,
-#threadTree .card-layout.selected button.twisty.thread-card-button:hover {
+#threadTree .card-layout.selected button.twisty.thread-card-button {
   background: transparent !important;
   border-color: rgba(255, 255, 255, 0.75) !important;
   color: #fff !important;
@@ -834,7 +734,7 @@ menupopup > :is(menuitem, menu)[_moz-menuactive="true"]:not([disabled="true"]) {
   box-shadow: 0 0 0.5px rgba(0, 0, 0, 0.28), 0 1px 1.5px rgba(0, 0, 0, 0.08);
   font-size: 13px;
   line-height: 21px;
-  color: rgba(35, 31, 32, 0.5);
+  color: var(--tk-text-very-subtle);
   cursor: default;
 }
 #tk-thread .tk-bar:hover {
@@ -872,7 +772,7 @@ menupopup > :is(menuitem, menu)[_moz-menuactive="true"]:not([disabled="true"]) {
   border-radius: 15px;
   background: #fff;
   font-size: 13px;
-  color: rgba(35, 31, 32, 0.5);
+  color: var(--tk-text-very-subtle);
   cursor: default;
 }
 /* The card gets 6px of space above; the subject moves up above the bars */
@@ -881,9 +781,4 @@ menupopup > :is(menuitem, menu)[_moz-menuactive="true"]:not([disabled="true"]) {
 }
 #messagepanebox.tk-has-thread #headerSubjectSecurityContainer {
   top: calc(-47px - var(--tk-bars-h, 0px)) !important;
-}
-
-/* Counters only on inboxes – not on Drafts, Sent, Archive, Junk, Trash, accounts, etc. */
-#folderTree li:not([data-folder-type="inbox"]) > .container > .folder-count-badge {
-  display: none !important;
 }

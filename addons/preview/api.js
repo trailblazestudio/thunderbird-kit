@@ -12,14 +12,24 @@ const { MsgHdrToMimeMessage } = ChromeUtils.importESModule("resource:///modules/
 const { MailServices } = ChromeUtils.importESModule("resource:///modules/MailServices.sys.mjs");
 
 const XHTML = "http://www.w3.org/1999/xhtml";
+const HOOK = "preview";
 const SCAN_MS = 1000; // how often new about:3pane tabs are looked for
-const BARS_MS = 400; // how often the thread bars are synced with the open message
 const ROW_HEIGHT = 85; // room for three lines (Thunderbird's own card is ~75px)
 const PREVIEW_LENGTH = 200;
 const MAX_PARALLEL = 2;
+const MAX_CACHED = 5000;
 const MAX_PENDING = 500;
 
 const T = { you: "You", older: n => `${n} older messages` };
+
+// Services.intl follows the regional settings Thunderbird itself uses.
+const FMT = {
+  time: new Services.intl.DateTimeFormat(undefined, { timeStyle: "short" }),
+  weekday: new Services.intl.DateTimeFormat(undefined, { weekday: "short" }),
+  dateTime: new Services.intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }),
+  dayMonth: new Services.intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }),
+  dayMonthYear: new Services.intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }),
+};
 
 // The card's third row gets a preview column between the replies button and the icons.
 const LIST_CSS = `
@@ -45,12 +55,64 @@ const LIST_CSS = `
   }
 `;
 
+// ---------- Shared row hook ----------
+// Preview and Tracking both render into message list rows. Instead of wrapping
+// ThreadCard.prototype.fillRow on top of each other, they register on ONE shared
+// wrapper. When an add-on stops, the wrapper is removed completely and the other
+// add-on re-registers on its next scan (the wrapper may belong to the stopped add-on).
+
+const ROW_HOOKS = Symbol.for("thunderbird-kit.rowHooks");
+
+function addRowHook(Card, name, fn) {
+  const proto = Card.prototype;
+  if (!proto[ROW_HOOKS]) {
+    const orig = proto.fillRow;
+    const hooks = new Map();
+    proto.fillRow = function (...args) {
+      const result = orig.apply(this, args);
+      for (const hook of hooks.values()) {
+        try {
+          hook(this);
+        } catch (e) {
+          console.error("[thunderbird-kit]", e);
+        }
+      }
+      return result;
+    };
+    proto[ROW_HOOKS] = { orig, hooks };
+  }
+  proto[ROW_HOOKS].hooks.set(name, fn);
+}
+
+function hasRowHook(Card, name) {
+  return !!Card.prototype[ROW_HOOKS]?.hooks.has(name);
+}
+
+function removeRowHooks(Card) {
+  const shared = Card.prototype[ROW_HOOKS];
+  if (shared) {
+    Card.prototype.fillRow = shared.orig;
+    delete Card.prototype[ROW_HOOKS];
+  }
+}
+
 // ---------- Helpers ----------
 
 function newTimer(fn, ms, type) {
   const timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
   timer.initWithCallback({ notify: fn }, ms, type);
   return timer;
+}
+
+function el(doc, tag, cls, text) {
+  const node = doc.createElementNS(XHTML, tag);
+  if (cls) {
+    node.className = cls;
+  }
+  if (text !== undefined) {
+    node.textContent = text;
+  }
+  return node;
 }
 
 function hdrKey(hdr) {
@@ -78,29 +140,23 @@ function shortName(hdr, own) {
 }
 
 // Like Thunderbird's list: time today, weekday + time this week, otherwise date + time.
-// Services.intl follows the regional settings Thunderbird itself uses.
 function fmtListDate(sec) {
   const d = new Date(sec * 1000);
-  const time = new Services.intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (d >= today) {
-    return time;
+    return FMT.time.format(d);
   }
   if (d >= today - 6 * 86400000) {
-    return `${new Services.intl.DateTimeFormat(undefined, { weekday: "short" }).format(d)}, ${time}`;
+    return `${FMT.weekday.format(d)}, ${FMT.time.format(d)}`;
   }
-  return new Services.intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(d);
+  return FMT.dateTime.format(d);
 }
 
 // Thread bars: "1 Sep", with the year when it is not this year.
 function fmtBarDate(sec) {
   const d = new Date(sec * 1000);
-  const opts = { day: "numeric", month: "short" };
-  if (d.getFullYear() !== new Date().getFullYear()) {
-    opts.year = "numeric";
-  }
-  return new Services.intl.DateTimeFormat(undefined, opts).format(d);
+  return (d.getFullYear() === new Date().getFullYear() ? FMT.dayMonth : FMT.dayMonthYear).format(d);
 }
 
 // All messages of a thread, oldest first.
@@ -121,8 +177,23 @@ function cleanBody(body) {
     .trim();
 }
 
+// Drop the oldest entries of an insertion-ordered Map/Set once it grows too big.
+function trim(collection) {
+  if (collection.size > MAX_CACHED) {
+    const drop = collection.size - MAX_CACHED / 2;
+    let i = 0;
+    for (const key of collection.keys()) {
+      if (i++ >= drop) {
+        break;
+      }
+      collection.delete(key);
+    }
+  }
+}
+
 function start() {
   const patched = new Map(); // about:3pane window -> undo function
+  let own = ownEmails(); // refreshed on every scan
 
   // ---------- Preview text ----------
   // Text is read from the local (offline) copy only; nothing is downloaded.
@@ -151,6 +222,7 @@ function start() {
       return;
     }
     attempted.add(id);
+    trim(attempted);
     waiting.push({ id, hdr });
     pump();
   }
@@ -170,6 +242,7 @@ function start() {
   function done(id, text) {
     if (text) {
       cache.set(id, text.slice(0, PREVIEW_LENGTH));
+      trim(cache);
     }
     running--;
     refreshSoon();
@@ -215,15 +288,20 @@ function start() {
     }
   }
 
+  // Fill in previews that arrived – only the empty spans, no full re-render.
   let refreshTimer = null;
   function refreshSoon() {
     refreshTimer ??= newTimer(
       () => {
         refreshTimer = null;
         for (const w of patched.keys()) {
-          for (const row of w.document.querySelectorAll("#threadTree tr.card-layout")) {
-            renderRow(row);
+          for (const span of w.document.querySelectorAll("#threadTree .tk-preview:empty")) {
+            const text = cache.get(span.dataset.key);
+            if (text) {
+              span.textContent = text;
+            }
           }
+          updateBars(w);
         }
       },
       200,
@@ -240,14 +318,13 @@ function start() {
     }
     let span = dyn.querySelector(".tk-preview");
     if (!span) {
-      span = row.ownerDocument.createElementNS(XHTML, "span");
-      span.className = "tk-preview";
+      span = el(row.ownerDocument, "span", "tk-preview");
       dyn.appendChild(span);
     }
 
-    // Paperclip next to the time.
+    // Paperclip right before the time.
+    const dateEl = row.dateLine;
     const att = row.querySelector(".attachment-icon");
-    const dateEl = row.querySelector(".thread-card-row .date");
     if (att && dateEl && att.nextElementSibling !== dateEl) {
       dateEl.before(att);
     }
@@ -255,6 +332,7 @@ function start() {
     const hdr = row.view && !row.dataset.properties?.split(" ").includes("dummy") ? row.view.getMsgHdrAt(row.index) : null;
     if (!hdr) {
       span.textContent = "";
+      delete span.dataset.key;
       return;
     }
 
@@ -265,19 +343,14 @@ function start() {
       if (thread?.numChildren > 1) {
         const kids = threadKids(thread);
         shown = kids.at(-1);
-        const own = ownEmails();
         const names = [...new Set(kids.map(k => shortName(k, own)))]; // participants, first appearance
         const label = names.length <= 3 ? names.join(", ") : `${names[0]}, ${names[1]} +${names.length - 2}`;
-        const sender = row.querySelector(".card-container .sender");
-        if (sender) {
-          sender.textContent = `${label} (${kids.length})`;
-        }
-        if (dateEl) {
-          dateEl.textContent = fmtListDate(shown.dateInSeconds);
-        }
+        row.senderLine.textContent = `${label} (${kids.length})`;
+        dateEl.textContent = fmtListDate(shown.dateInSeconds);
       }
     }
 
+    span.dataset.key = hdrKey(shown);
     span.textContent = previewOf(shown);
     if (!span.textContent) {
       enqueue(shown);
@@ -293,23 +366,17 @@ function start() {
     mw.document.getElementById("messagepanebox")?.classList.remove("tk-has-thread");
   }
 
-  function makeBar(doc, mw, hdr, own) {
-    const bar = doc.createElementNS(XHTML, "div");
-    bar.className = "tk-bar";
-    const parts = [
-      ["tk-from", shortName(hdr, own)],
-      ["tk-snip", previewOf(hdr)],
-      ["tk-date", fmtBarDate(hdr.dateInSeconds)],
-    ];
-    for (const [cls, text] of parts) {
-      const span = doc.createElementNS(XHTML, "span");
-      span.className = cls;
-      span.textContent = text;
-      bar.append(span);
-    }
-    if (!previewOf(hdr)) {
+  function makeBar(doc, mw, hdr) {
+    const text = previewOf(hdr);
+    if (!text) {
       enqueue(hdr);
     }
+    const bar = el(doc, "div", "tk-bar");
+    bar.append(
+      el(doc, "span", "tk-from", shortName(hdr, own)),
+      el(doc, "span", "tk-snip", text),
+      el(doc, "span", "tk-date", fmtBarDate(hdr.dateInSeconds))
+    );
     bar.addEventListener("click", () => mw.displayMessage(hdr.folder.getUriForMsg(hdr), mw.gViewWrapper));
     return bar;
   }
@@ -323,9 +390,7 @@ function start() {
     const box = doc.getElementById("messagepanebox");
     const hdr = w.messageBrowser.hidden ? null : mw.gMessage;
     if (!box || !hdr) {
-      if (box) {
-        removeBars(mw);
-      }
+      removeBars(mw);
       return;
     }
     let st = barState.get(mw);
@@ -345,36 +410,30 @@ function start() {
     // Rebuild only when something visible changed (incl. this thread's previews arriving).
     const ready = others.filter(k => previewOf(k)).length;
     const key = `${hdrKey(hdr)}:${others.length}:${expanded}:${ready}`;
-    if (key === st.key && doc.getElementById("tk-thread")) {
+    let wrap = doc.getElementById("tk-thread");
+    if (key === st.key && wrap) {
       return;
     }
     st.key = key;
 
-    let wrap = doc.getElementById("tk-thread");
     if (!wrap) {
-      wrap = doc.createElementNS(XHTML, "div");
+      wrap = el(doc, "div");
       wrap.id = "tk-thread";
       box.insertBefore(wrap, doc.getElementById("singleMessage"));
     }
-    wrap.replaceChildren();
-
-    const own = ownEmails();
     if (!expanded && others.length > 3) {
       // Oldest, "N older messages", newest – like a folded conversation.
-      const pillRow = doc.createElementNS(XHTML, "div");
-      pillRow.className = "tk-pill-row";
-      const pill = doc.createElementNS(XHTML, "span");
-      pill.className = "tk-pill";
-      pill.textContent = T.older(others.length - 2);
+      const pill = el(doc, "span", "tk-pill", T.older(others.length - 2));
       pill.addEventListener("click", () => {
         st.expandedFor = thread.threadKey;
         st.key = "";
         updateBars(w);
       });
+      const pillRow = el(doc, "div", "tk-pill-row");
       pillRow.append(pill);
-      wrap.append(makeBar(doc, mw, others[0], own), pillRow, makeBar(doc, mw, others.at(-1), own));
+      wrap.replaceChildren(makeBar(doc, mw, others[0]), pillRow, makeBar(doc, mw, others.at(-1)));
     } else {
-      wrap.append(...others.map(k => makeBar(doc, mw, k, own)));
+      wrap.replaceChildren(...others.map(k => makeBar(doc, mw, k)));
     }
     box.classList.add("tk-has-thread");
     box.style.setProperty("--tk-bars-h", `${wrap.getBoundingClientRect().height}px`);
@@ -389,9 +448,8 @@ function start() {
       return; // not loaded yet – the next scan retries
     }
 
-    const style = w.document.createElementNS(XHTML, "style");
-    style.textContent = LIST_CSS;
-    w.document.documentElement.appendChild(style);
+    const style = el(w.document, "style", "", LIST_CSS);
+    w.document.documentElement.append(style);
 
     const origHeight = Object.getOwnPropertyDescriptor(Card, "ROW_HEIGHT");
     Object.defineProperty(Card, "ROW_HEIGHT", {
@@ -399,17 +457,7 @@ function start() {
       get: () => ROW_HEIGHT,
       set() {}, // Thunderbird recalculates on font/density changes – keep ours
     });
-
-    const origFill = Card.prototype.fillRow;
-    Card.prototype.fillRow = function (...args) {
-      const result = origFill.apply(this, args);
-      try {
-        renderRow(this);
-      } catch (e) {
-        console.error("[Preview for Thunderbird]", e);
-      }
-      return result;
-    };
+    addRowHook(Card, HOOK, renderRow);
 
     // Selecting a thread opens its newest message instead of the multi-message summary.
     const pane = w.document.getElementById("messagePane");
@@ -418,7 +466,8 @@ function start() {
       pane.displayMessages = function (messages = []) {
         if (messages.length > 1 && w.gDBView?.selection?.count === 1) {
           const rootKey = m => w.gDBView.getThreadContainingMsgHdr(m).getRootHdr().messageKey;
-          if (messages.every(m => rootKey(m) === rootKey(messages[0]))) {
+          const root = rootKey(messages[0]);
+          if (messages.every(m => rootKey(m) === root)) {
             const newest = messages.reduce((a, b) => (b.dateInSeconds > a.dateInSeconds ? b : a));
             return this.displayMessage(newest.folder.getUriForMsg(newest));
           }
@@ -427,7 +476,18 @@ function start() {
       };
     }
 
+    // Thread bars follow the open message.
+    const onLoaded = () => {
+      try {
+        updateBars(w);
+      } catch (e) {
+        console.error("[Preview for Thunderbird]", e);
+      }
+    };
+    w.addEventListener("MsgLoaded", onLoaded); // bubbles up from about:message
+
     patched.set(w, () => {
+      w.removeEventListener("MsgLoaded", onLoaded);
       if (origDisplay) {
         delete pane.displayMessages;
       }
@@ -436,19 +496,21 @@ function start() {
       } catch (e) {
         // message browser already gone
       }
-      Card.prototype.fillRow = origFill;
+      removeRowHooks(Card);
       if (origHeight) {
         Object.defineProperty(Card, "ROW_HEIGHT", origHeight);
       }
       style.remove();
-      w.document.querySelectorAll(".tk-preview").forEach(el => el.remove());
+      w.document.querySelectorAll(".tk-preview").forEach(node => node.remove());
       tree.reset();
     });
 
     tree.reset(); // redraw existing rows with the new height and preview
+    onLoaded(); // a message may already be open
   }
 
   function scan() {
+    own = ownEmails();
     for (const hdr of pendingOffline.values()) {
       if (hdr.flags & Ci.nsMsgMessageFlags.Offline) {
         enqueue(hdr);
@@ -465,37 +527,32 @@ function start() {
     for (const win of Services.wm.getEnumerator("mail:3pane")) {
       for (const info of win.document.getElementById("tabmail")?.tabInfo ?? []) {
         const w = info.chromeBrowser?.contentWindow;
-        if (w?.location.href.startsWith("about:3pane") && !patched.has(w)) {
-          try {
+        if (!w?.location.href.startsWith("about:3pane")) {
+          continue;
+        }
+        try {
+          if (!patched.has(w)) {
             patch(w);
-          } catch (e) {
-            console.error("[Preview for Thunderbird]", e);
+          } else {
+            // Tracking may have stopped and taken the shared row hook with it.
+            const Card = w.customElements.get("thread-card");
+            if (!hasRowHook(Card, HOOK)) {
+              addRowHook(Card, HOOK, renderRow);
+            }
           }
+        } catch (e) {
+          console.error("[Preview for Thunderbird]", e);
         }
       }
     }
   }
 
   const scanTimer = newTimer(scan, SCAN_MS, Ci.nsITimer.TYPE_REPEATING_SLACK);
-  const barTimer = newTimer(
-    () => {
-      for (const w of patched.keys()) {
-        try {
-          updateBars(w);
-        } catch (e) {
-          // the message pane is being swapped – try again on the next tick
-        }
-      }
-    },
-    BARS_MS,
-    Ci.nsITimer.TYPE_REPEATING_SLACK
-  );
   scan();
 
   return {
     stop() {
       scanTimer.cancel();
-      barTimer.cancel();
       refreshTimer?.cancel();
       for (const undo of patched.values()) {
         try {

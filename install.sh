@@ -25,7 +25,7 @@ if [ ! -d "$PROFILE" ]; then
   echo "No Thunderbird profile found. Pass its path: ./install.sh <profile>" >&2
   exit 1
 fi
-if pgrep -x thunderbird >/dev/null || pgrep -x thunderbird-bin >/dev/null; then
+if pgrep -x 'thunderbird(-bin)?' >/dev/null; then
   echo "Please close Thunderbird first." >&2
   exit 1
 fi

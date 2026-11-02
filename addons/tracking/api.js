@@ -11,6 +11,7 @@
 const { MailServices } = ChromeUtils.importESModule("resource:///modules/MailServices.sys.mjs");
 
 const XHTML = "http://www.w3.org/1999/xhtml";
+const HOOK = "tracking";
 const SCAN_MS = 1000;
 const PIXEL_ORIGIN = "__TRACKING_URL__"; // filled in by build.sh
 const OPENED_COLOR = "#7c19cc";
@@ -98,7 +99,54 @@ const HEADER_CSS = `
   #tk-track-pop .tk-track-app { color: rgba(35, 31, 32, 0.5); font-size: 11.5px; white-space: nowrap; }
 `;
 
+// ---------- Shared row hook ----------
+// Preview and Tracking both render into message list rows. Instead of wrapping
+// ThreadCard.prototype.fillRow on top of each other, they register on ONE shared
+// wrapper. When an add-on stops, the wrapper is removed completely and the other
+// add-on re-registers on its next scan (the wrapper may belong to the stopped add-on).
+
+const ROW_HOOKS = Symbol.for("thunderbird-kit.rowHooks");
+
+function addRowHook(Card, name, fn) {
+  const proto = Card.prototype;
+  if (!proto[ROW_HOOKS]) {
+    const orig = proto.fillRow;
+    const hooks = new Map();
+    proto.fillRow = function (...args) {
+      const result = orig.apply(this, args);
+      for (const hook of hooks.values()) {
+        try {
+          hook(this);
+        } catch (e) {
+          console.error("[thunderbird-kit]", e);
+        }
+      }
+      return result;
+    };
+    proto[ROW_HOOKS] = { orig, hooks };
+  }
+  proto[ROW_HOOKS].hooks.set(name, fn);
+}
+
+function hasRowHook(Card, name) {
+  return !!Card.prototype[ROW_HOOKS]?.hooks.has(name);
+}
+
+function removeRowHooks(Card) {
+  const shared = Card.prototype[ROW_HOOKS];
+  if (shared) {
+    Card.prototype.fillRow = shared.orig;
+    delete Card.prototype[ROW_HOOKS];
+  }
+}
+
 // ---------- Helpers ----------
+
+function newTimer(fn, ms, type) {
+  const timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  timer.initWithCallback({ notify: fn }, ms, type);
+  return timer;
+}
 
 // "2 Nov, 10:36", with the year when it is not this year.
 function fmtOpenDate(ms) {
@@ -173,9 +221,10 @@ function start() {
       return;
     }
     icon ??= el(row.ownerDocument, "span", "tk-track");
-    const dateEl = row.querySelector(".thread-card-row .date");
-    if (dateEl && icon.nextElementSibling !== dateEl) {
-      dateEl.before(icon);
+    // Before the paperclip that Preview puts next to the time, otherwise before the time.
+    const target = row.querySelector(".thread-card-row > .attachment-icon") || row.dateLine;
+    if (target && icon.nextElementSibling !== target) {
+      target.before(icon);
     }
     const n = realOpens(t).length;
     icon.classList.toggle("opened", n > 0);
@@ -240,14 +289,10 @@ function start() {
       return;
     }
 
-    let style = doc.getElementById("tk-track-style");
-    if (!style) {
-      style = el(doc, "style");
+    if (!doc.getElementById("tk-track-style")) {
+      const style = el(doc, "style", "", HEADER_CSS);
       style.id = "tk-track-style";
       doc.documentElement.append(style);
-    }
-    if (style.textContent !== HEADER_CSS) {
-      style.textContent = HEADER_CSS; // also after the add-on was updated
     }
 
     const n = realOpens(t).length;
@@ -287,47 +332,33 @@ function start() {
   }
   onTrackUpdate = refreshAll;
 
-  function wrapFill(Card) {
-    const orig = Card.prototype.fillRow;
-    if (orig.tkTrack) {
-      return;
-    }
-    const wrapped = function (...args) {
-      const result = orig.apply(this, args);
-      try {
-        renderTrack(this);
-      } catch (e) {
-        console.error("[Tracking for Thunderbird]", e);
-      }
-      return result;
-    };
-    wrapped.tkTrack = orig;
-    Card.prototype.fillRow = wrapped;
-  }
-
   function patch(w) {
     const Card = w.customElements.get("thread-card");
     if (!Card || !w.document.getElementById("threadTree")) {
-      return;
+      return; // not loaded yet – the next scan retries
     }
-    // Preview may have wrapped fillRow again on top of ours – check on every scan.
-    wrapFill(Card);
-    if (patched.has(w)) {
-      return;
-    }
-    const style = el(w.document, "style");
-    style.textContent = LIST_CSS;
+    addRowHook(Card, HOOK, renderTrack);
+    const style = el(w.document, "style", "", LIST_CSS);
     w.document.documentElement.append(style);
-    patched.set(w, () => {
-      if (Card.prototype.fillRow.tkTrack) {
-        Card.prototype.fillRow = Card.prototype.fillRow.tkTrack; // remove only our own wrapper
+    const onLoaded = () => {
+      try {
+        updateTrack(w);
+      } catch (e) {
+        console.error("[Tracking for Thunderbird]", e);
       }
+    };
+    w.addEventListener("MsgLoaded", onLoaded); // bubbles up from about:message
+
+    patched.set(w, () => {
+      w.removeEventListener("MsgLoaded", onLoaded);
+      removeRowHooks(Card);
       style.remove();
       w.document.querySelectorAll(".tk-track").forEach(node => node.remove());
       try {
         const doc = w.messageBrowser.contentWindow.document;
-        doc.getElementById("tk-track")?.remove();
-        doc.getElementById("tk-track-pop")?.remove();
+        for (const id of ["tk-track", "tk-track-pop", "tk-track-style"]) {
+          doc.getElementById(id)?.remove();
+        }
       } catch (e) {
         // message browser already gone
       }
@@ -344,26 +375,34 @@ function start() {
     for (const win of Services.wm.getEnumerator("mail:3pane")) {
       for (const info of win.document.getElementById("tabmail")?.tabInfo ?? []) {
         const w = info.chromeBrowser?.contentWindow;
-        if (w?.location.href.startsWith("about:3pane")) {
-          try {
+        if (!w?.location.href.startsWith("about:3pane")) {
+          continue;
+        }
+        try {
+          if (!patched.has(w)) {
             patch(w);
-            updateTrack(w);
-          } catch (e) {
-            // tab still loading – the next scan retries
+          } else {
+            // Preview may have stopped and taken the shared row hook with it.
+            const Card = w.customElements.get("thread-card");
+            if (!hasRowHook(Card, HOOK)) {
+              addRowHook(Card, HOOK, renderTrack);
+            }
           }
+        } catch (e) {
+          console.error("[Tracking for Thunderbird]", e);
         }
       }
     }
   }
 
-  const timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-  timer.initWithCallback({ notify: scan }, SCAN_MS, Ci.nsITimer.TYPE_REPEATING_SLACK);
+  const timer = newTimer(scan, SCAN_MS, Ci.nsITimer.TYPE_REPEATING_SLACK);
   scan();
 
   return {
     stop() {
       timer.cancel();
       onTrackUpdate = () => {};
+      trackMap = new Map();
       for (const undo of patched.values()) {
         try {
           undo();

@@ -12,9 +12,6 @@ const MAX_OPENS_PER_PIXEL = 500; // keeps a leaked pixel URL from filling the da
 const MAX_BODY_BYTES = 4096;
 const MAX_DAYS = 365;
 
-const json = (data, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
-
 // Constant-time comparison, so response timing reveals nothing about the key.
 function isAuthorized(req, env) {
   if (!env.API_KEY) {
@@ -80,17 +77,17 @@ async function logOpen(env, token, req) {
 
 async function handleApi(req, env, url) {
   if (!isAuthorized(req, env)) {
-    return json({ error: "unauthorized" }, 401);
+    return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const route = `${req.method} ${url.pathname}`;
 
   if (route === "POST /api/pixels") {
     const body = await readJson(req);
-    if (!TOKEN.test(body?.token || "")) return json({ error: "bad request" }, 400);
+    if (!TOKEN.test(body?.token || "")) return Response.json({ error: "bad request" }, { status: 400 });
     await env.DB.prepare("INSERT OR IGNORE INTO pixels (token, created_at) VALUES (?, ?)")
       .bind(body.token, Date.now())
       .run();
-    return json({ ok: true });
+    return Response.json({ ok: true });
   }
 
   // Links a pixel to the Message-ID of the sent message.
@@ -98,10 +95,10 @@ async function handleApi(req, env, url) {
     const body = await readJson(req);
     const { token, messageId } = body || {};
     if (!TOKEN.test(token || "") || typeof messageId !== "string" || !messageId || messageId.length > 500) {
-      return json({ error: "bad request" }, 400);
+      return Response.json({ error: "bad request" }, { status: 400 });
     }
     await env.DB.prepare("UPDATE pixels SET message_id = ? WHERE token = ?").bind(messageId, token).run();
-    return json({ ok: true });
+    return Response.json({ ok: true });
   }
 
   // All tracked messages of the last N days with their opens.
@@ -122,10 +119,10 @@ async function handleApi(req, env, url) {
         entry.opens.push({ ts: r.ts, country: r.country, city: r.city, client: r.client, auto: !!r.auto });
       }
     }
-    return json(out);
+    return Response.json(out);
   }
 
-  return json({ error: "not found" }, 404);
+  return Response.json({ error: "not found" }, { status: 404 });
 }
 
 export default {

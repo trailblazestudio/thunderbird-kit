@@ -15,16 +15,13 @@ const TITLE_OFF = "Open tracking is off";
 const disabledTabs = new Set(); // compose tabs with tracking turned off
 const pendingTokens = new Map(); // compose tab -> pixel token of the message being sent
 
-const escapedUrl = TRACK_CONFIG.url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const ownPixel = new RegExp(`<img[^>]*${escapedUrl}/o/[^>]*>`, "gi");
+const SERVER = TRACK_CONFIG.url.replace(/\/+$/, ""); // same normalisation as build.sh
+const ownPixel = new RegExp(`<img[^>]*${SERVER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/o/[^>]*>`, "gi");
 
-function newToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+let lastData = null; // last /api/recent response, to skip unchanged polls
 
-async function api(path, body) {
-  const res = await fetch(TRACK_CONFIG.url + path, {
+async function request(path, body) {
+  const res = await fetch(SERVER + path, {
     method: body ? "POST" : "GET",
     headers: { "content-type": "application/json", authorization: `Bearer ${TRACK_CONFIG.key}` },
     body: body ? JSON.stringify(body) : undefined,
@@ -32,13 +29,16 @@ async function api(path, body) {
   if (!res.ok) {
     throw new Error(`${path}: HTTP ${res.status}`);
   }
-  return res.json();
+  return res.text();
 }
 
 async function poll() {
   try {
-    const data = await api(`/api/recent?days=${HISTORY_DAYS}`);
-    await browser.tkTracking.setTracking(JSON.stringify(data));
+    const data = await request(`/api/recent?days=${HISTORY_DAYS}`);
+    if (data !== lastData) {
+      await browser.tkTracking.setTracking(data);
+      lastData = data;
+    }
   } catch (e) {
     console.warn("[Tracking for Thunderbird] could not fetch opens:", e);
   }
@@ -77,9 +77,9 @@ browser.compose.onBeforeSend.addListener(async (tab, details) => {
   const unchanged = body === details.body;
   if (!disabledTabs.has(tab.id)) {
     try {
-      const token = newToken();
-      await api("/api/pixels", { token });
-      const img = `<img src="${TRACK_CONFIG.url}/o/${token}.png" width="1" height="1" alt="" style="border:0;width:1px;height:1px">`;
+      const token = crypto.randomUUID();
+      await request("/api/pixels", { token });
+      const img = `<img src="${SERVER}/o/${token}.png" width="1" height="1" alt="" style="border:0;width:1px;height:1px">`;
       pendingTokens.set(tab.id, token);
       return { details: { body: insertPixel(body, img) } };
     } catch (e) {
@@ -97,7 +97,7 @@ browser.compose.onAfterSend.addListener(async (tab, info) => {
     return;
   }
   try {
-    await api("/api/link", { token, messageId: info.headerMessageId.replace(/^<|>$/g, "") });
+    await request("/api/link", { token, messageId: info.headerMessageId.replace(/^<|>$/g, "") });
     await poll();
   } catch (e) {
     console.warn("[Tracking for Thunderbird] could not link the pixel to the message:", e);

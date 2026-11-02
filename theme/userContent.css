@@ -6,7 +6,7 @@
     scrollbar-color: rgba(150, 150, 150, 0.33) transparent !important;
   }
   html {
-    padding: 10px 20px 14px !important;   /* .message-item-area: 20px sider, 10px top */
+    padding: 10px 20px 14px !important;   /* 20px sides, 10px top */
     box-sizing: border-box !important;
     background: #fff !important;
   }
@@ -14,10 +14,10 @@
     font-size: 14.5px;
     line-height: 1.5;
     color: #231f20;
-    background-color: transparent;
     word-wrap: break-word;
   }
   body {
+    background-color: transparent;
     font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
     margin: auto;
     padding: 0;
@@ -44,7 +44,6 @@
   a { color: #419bf9; }
   a:hover { color: #3187e1; }
   a:visited { color: #0e81f8; }
-  a img { border-bottom: 0; }
   img { border: 0; }
 }
 
