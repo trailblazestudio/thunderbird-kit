@@ -17,7 +17,6 @@ const OPENED_COLOR = "#7c19cc";
 const POPUP_WIDTH = 300;
 const EYE = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%221.4%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M1.25%208S3.75%203.25%208%203.25%2014.75%208%2014.75%208%2012.25%2012.75%208%2012.75%201.25%208%201.25%208z%22/%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%222.1%22/%3E%3C/svg%3E";
 
-const LOCALE = Services.locale.appLocaleAsBCP47; // date formats follow Thunderbird
 const T = {
   opens: n => (n === 0 ? "No opens" : `${n} ${n === 1 ? "open" : "opens"}`),
   openedBy: "Opened by:",
@@ -104,11 +103,12 @@ const HEADER_CSS = `
 // "2 Nov, 10:36", with the year when it is not this year.
 function fmtOpenDate(ms) {
   const d = new Date(ms);
-  const opts = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" };
+  const opts = { day: "numeric", month: "short" };
   if (d.getFullYear() !== new Date().getFullYear()) {
     opts.year = "numeric";
   }
-  return new Intl.DateTimeFormat(LOCALE, opts).format(d);
+  const date = new Services.intl.DateTimeFormat(undefined, opts).format(d);
+  return `${date}, ${new Services.intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(d)}`;
 }
 
 // Recipient addresses (To, Cc, Bcc) of a message.

@@ -1,6 +1,12 @@
-# thunderbird-kit
+# Calm for Thunderbird
 
-A light, calm theme for Thunderbird, plus two small add-ons:
+A light, calm theme for Thunderbird – with message previews, conversation threads and optional open tracking.
+
+![Conversation view with the older messages folded above the newest one](docs/screenshot-thread.png)
+
+![Message list with preview lines and the reading pane](docs/screenshot-message.png)
+
+## What's included
 
 - **Theme** – cleaner folder pane, message list, reading pane, compose window and menus.
 - **Preview for Thunderbird** – a preview line under each subject, and threads shown as one conversation.

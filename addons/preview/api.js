@@ -19,7 +19,6 @@ const PREVIEW_LENGTH = 200;
 const MAX_PARALLEL = 2;
 const MAX_PENDING = 500;
 
-const LOCALE = Services.locale.appLocaleAsBCP47; // date formats follow Thunderbird
 const T = { you: "You", older: n => `${n} older messages` };
 
 // The card's third row gets a preview column between the replies button and the icons.
@@ -79,18 +78,19 @@ function shortName(hdr, own) {
 }
 
 // Like Thunderbird's list: time today, weekday + time this week, otherwise date + time.
+// Services.intl follows the regional settings Thunderbird itself uses.
 function fmtListDate(sec) {
   const d = new Date(sec * 1000);
-  const time = { hour: "2-digit", minute: "2-digit" };
+  const time = new Services.intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (d >= today) {
-    return new Intl.DateTimeFormat(LOCALE, time).format(d);
+    return time;
   }
   if (d >= today - 6 * 86400000) {
-    return new Intl.DateTimeFormat(LOCALE, { weekday: "short", ...time }).format(d);
+    return `${new Services.intl.DateTimeFormat(undefined, { weekday: "short" }).format(d)}, ${time}`;
   }
-  return new Intl.DateTimeFormat(LOCALE, { dateStyle: "short", timeStyle: "short" }).format(d);
+  return new Services.intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(d);
 }
 
 // Thread bars: "1 Sep", with the year when it is not this year.
@@ -100,7 +100,7 @@ function fmtBarDate(sec) {
   if (d.getFullYear() !== new Date().getFullYear()) {
     opts.year = "numeric";
   }
-  return new Intl.DateTimeFormat(LOCALE, opts).format(d);
+  return new Services.intl.DateTimeFormat(undefined, opts).format(d);
 }
 
 // All messages of a thread, oldest first.
@@ -266,14 +266,8 @@ function start() {
         const kids = threadKids(thread);
         shown = kids.at(-1);
         const own = ownEmails();
-        const names = [];
-        for (const k of kids) {
-          const name = shortName(k, own);
-          if (names.at(-1) !== name) {
-            names.push(name);
-          }
-        }
-        const label = names.length <= 3 ? names.join(", ") : `${names[0]}..${names.at(-2)}, ${names.at(-1)}`;
+        const names = [...new Set(kids.map(k => shortName(k, own)))]; // participants, first appearance
+        const label = names.length <= 3 ? names.join(", ") : `${names[0]}, ${names[1]} +${names.length - 2}`;
         const sender = row.querySelector(".card-container .sender");
         if (sender) {
           sender.textContent = `${label} (${kids.length})`;
