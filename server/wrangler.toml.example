@@ -1,0 +1,13 @@
+# Copy to wrangler.toml and paste the database_id from "wrangler d1 create tracking".
+name = "img"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+workers_dev = true
+
+# Optional: serve the pixel from your own domain (must be on Cloudflare).
+# routes = [{ pattern = "img.example.com", custom_domain = true }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tracking"
+database_id = "YOUR-DATABASE-ID"

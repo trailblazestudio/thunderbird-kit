@@ -1,0 +1,889 @@
+/* ==========================================================================
+   thunderbird-kit – a light, calm theme for Thunderbird 128+.
+   userChrome.css is a *user* stylesheet: it loses to Thunderbird's own rules
+   unless !important is used – hence !important throughout.
+   ========================================================================== */
+
+/* Font: Inter (free, installed separately – see README) */
+
+:root {
+  --tk-blue: #3a8ddd; /* unread dot */
+  --tk-blue-dark: #3e85dc; /* accent */
+  --tk-text: #231f20;
+  --tk-text-subtle: rgba(35, 31, 32, 0.8);
+  --tk-text-very-subtle: rgba(35, 31, 32, 0.5);
+  --tk-panel-bg: #f6f7f8; /* sidebar */
+  --tk-bg-secondary: #f6f6f6;
+  --tk-list-border: #dddddd;
+  --tk-list-read-bg: #fafafa;
+  --tk-list-hover-bg: #f5f5f5;
+  --tk-list-selected-bg: #e1edfb;
+
+  --tree-pane-background: #fff !important;
+  --tree-view-bg: #fff !important;
+  --selected-item-color: var(--tk-blue-dark) !important;
+  --selected-item-text-color: #fff !important;
+
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
+:root :is(button, input, select, textarea, label, menulist, toolbarbutton, .button) {
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
+/* ---------- Topbar (unified toolbar) ---------- */
+
+/* ---------- Folder pane ---------- */
+#folderPane,
+#folderTree {
+  background: var(--tk-panel-bg) !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(150, 150, 150, 0.33) transparent !important;
+}
+
+#folderPaneHeaderBar {
+  background: var(--tk-panel-bg) !important;
+  border: none !important;
+}
+
+/* "Unified Folders" / "All Folders" → small grey headings */
+#folderTree .mode-container {
+  background: transparent !important;
+  border: none !important;
+}
+#folderTree .mode-name {
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.2px !important;
+  color: var(--tk-text-very-subtle) !important;
+  padding-inline-start: 10px !important;
+}
+
+/* Regular folders */
+#folderTree li > .container {
+  min-height: 27px !important;
+  color: var(--tk-text-subtle) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+/* No bold for folders with unread mail */
+#folderTree li > .container > .name {
+  font-weight: 400 !important;
+}
+#folderTree li > .container:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Selected folder: no background, blue text + blue icon */
+#folderTree li.selected > .container,
+#folderTree:focus-within li.selected > .container {
+  background: transparent !important;
+  color: var(--tk-blue-dark) !important;
+}
+
+/* Monochrome icons instead of Thunderbird's coloured ones */
+#folderTree li > .container > .icon {
+  --icon-color: rgba(35, 31, 32, 0.7) !important;
+  fill: transparent !important;
+  stroke: var(--icon-color) !important;
+}
+
+/* Account names → small grey headings */
+#folderTree li[data-server-type] > .container > .name {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--tk-text-very-subtle) !important;
+}
+#folderTree li[data-server-type] > .container > .icon {
+  display: none !important;
+}
+#folderTree li[data-server-type].selected > .container > .name {
+  color: var(--tk-blue-dark) !important;
+}
+
+/* Remove the coloured account stripes */
+#folderTree .account-indicator {
+  display: none !important;
+}
+
+/* Counters: blue box with white text */
+#folderTree .folder-count-badge {
+  border-radius: 2px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 0 4px !important;
+  line-height: 15px !important;
+  min-inline-size: 0 !important;
+}
+#folderTree .unread-count,
+#folderTree .new-messages > .container > .unread-count {
+  background: var(--tk-blue-dark) !important;
+  color: #fff !important;
+  border: none !important;
+}
+#folderTree .unread.children.collapsed:has(ul > .unread) > .container > .unread-count {
+  background: transparent !important;
+  color: var(--tk-blue-dark) !important;
+  border: 1px solid var(--tk-blue-dark) !important;
+}
+#folderTree .total-count {
+  background: transparent !important;
+  color: rgba(0, 0, 0, 0.48) !important;
+  border: 1px solid rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Splitter between panes: thin grey line */
+hr[is="pane-splitter"] {
+  border-color: var(--tk-list-border) !important;
+}
+
+/* ---------- Message list ---------- */
+#threadPane {
+  background: #fff !important;
+}
+
+#threadPaneHeaderBar {
+  background: #fff !important;
+  border-bottom: 1px solid var(--tk-list-border) !important;
+}
+
+#threadTree {
+  background: #fff !important;
+  padding-block: 0 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(150, 150, 150, 0.33) transparent !important;
+}
+
+/* Flat rows instead of rounded cards */
+#threadTree [is="tree-view-table-body"] > .card-layout > td {
+  padding: 0 !important;
+}
+#threadTree [is="tree-view-table-body"] > .card-layout > td > .card-container {
+  background: var(--tk-list-read-bg) !important;
+  color: var(--tk-text) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(221, 221, 221, 0.6) !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  padding-inline: 4px 12px !important;
+}
+
+/* Unread: white background, full border */
+#threadTree [is="tree-view-table-body"] > .card-layout[data-properties~="unread"] > td > .card-container {
+  background: #fff !important;
+  border-bottom-color: var(--tk-list-border) !important;
+}
+
+/* Hover */
+#threadTree [is="tree-view-table-body"] > .card-layout:hover > td > .card-container {
+  background: var(--tk-list-hover-bg) !important;
+}
+
+/* Selected (multiple) */
+#threadTree [is="tree-view-table-body"] > .card-layout.selected > td > .card-container {
+  background: var(--tk-list-selected-bg) !important;
+}
+
+/* The open message: solid blue with white text – also when focus is in the reading pane */
+#threadTree [is="tree-view-table-body"] > .card-layout.selected.current > td > .card-container {
+  background: var(--tk-blue-dark) !important;
+  color: #fff !important;
+  border-bottom-color: var(--tk-blue-dark) !important;
+}
+#threadTree .card-layout.selected.current :is(.sender, .subject, .date, .thread-replies) {
+  color: #fff !important;
+}
+#threadTree .card-layout.selected.current :is(img, button) {
+  fill: #fff !important;
+  stroke: #fff !important;
+}
+
+/* Text: sender and subject 14px, date 13px muted */
+#threadTree .card-container .sender {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  padding-inline-start: 0 !important;
+}
+#threadTree .card-container .subject {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  color: inherit !important;
+}
+#threadTree .card-container .thread-card-subject-container {
+  padding-inline-start: 0 !important;
+}
+#threadTree .card-container .date {
+  font-size: 13px !important;
+  opacity: 0.62 !important;
+}
+#threadTree .card-layout[data-properties~="unread"] .card-container :is(.sender, .subject) {
+  font-weight: 600 !important;
+}
+
+/* Unread marker: blue dot (no green dot / yellow star) */
+
+#threadTree .card-layout[data-properties~="unread"] .card-container .read-status {
+  fill: var(--tk-blue) !important;
+  stroke: var(--tk-blue) !important;
+}
+#threadTree .card-layout.selected.current .card-container .read-status {
+  fill: transparent !important;
+  stroke: transparent !important;
+}
+
+/* No kebab menu or account stripe; star only on hover or when flagged */
+#threadTree .card-container :is(.tree-button-more, .account-indicator) {
+  display: none !important;
+}
+#threadTree .card-layout:not([data-properties~="flagged"]):not(:hover) .button-star {
+  visibility: hidden !important;
+}
+#threadTree .card-layout[data-properties~="flagged"] .button-star {
+  fill: rgb(239, 209, 0) !important;
+  stroke: rgb(239, 209, 0) !important;
+}
+
+/* ---------- Reading pane: message header (about:message) ---------- */
+
+#messageHeader #expandedfromBox {
+  font-weight: 500 !important;
+}
+#messageHeader .message-header-row:not(#headerSenderToolbarContainer, #headerSubjectSecurityContainer),
+#messageHeader .message-header-datetime {
+  color: var(--tk-text-very-subtle) !important;
+  font-size: 13px !important;
+}
+
+/* Buttons: light, borderless, soft shadow */
+
+#messageHeader .message-header-view-button:hover {
+  background: #f2f2f2 !important;
+}
+
+/* ---------- Preview line (added by "Preview for Thunderbird") ---------- */
+/* Starts flush left, aligned with sender and subject. */
+#threadTree .card-container .tk-preview {
+  grid-column: 1 / 3 !important;
+  padding-inline-start: 0 !important;
+}
+/* Rows with an "N replies" button: button first, preview after it. */
+#threadTree .card-layout.children .card-container .tk-preview {
+  grid-column: 2 !important;
+  padding-inline-start: 9px !important;
+}
+
+/* ==========================================================================
+   READING PANE – grey surface, white card (4px radius, shadow),
+   subject above the card, 13px header with 19px/20px padding.
+   ========================================================================== */
+#messagepanebox {
+  background: #f6f6f6 !important;
+}
+
+#msgHeaderView, .main-header-area {
+  background: transparent !important;
+}
+#messageHeader {
+  background: #fff !important;
+  border-bottom: 1px solid var(--tk-list-border) !important;
+  color: var(--tk-text) !important;
+  border: none !important;
+  border-radius: 4px 4px 0 0 !important;
+  padding: 19px 20px 6px !important;
+  font-size: 13px !important;
+}
+#messageHeader .recipient-avatar {
+  display: none !important;
+}
+
+/* Subject sits above the card, 16px, normal weight */
+#headerSubjectSecurityContainer {
+  position: absolute !important;
+  top: -41px !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 0 12px !important;
+  min-height: 30px !important;
+  align-items: center !important;
+  background: transparent !important;
+}
+#messageHeader #expandedsubjectBox {
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: var(--tk-text) !important;
+  line-height: 1.8 !important;
+}
+
+/* Sender: 13px, 600, black. Recipients and time: grey (50 % black) */
+#messageHeader #expandedfromBox,
+#messageHeader #expandedfromBox * {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--tk-text) !important;
+}
+#messageHeader #expandedtoRow,
+#messageHeader #expandedtoRow *,
+#messageHeader .message-header-datetime {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--tk-text-very-subtle) !important;
+}
+
+/* Message body: white, rounded bottom corners */
+
+/* ---- Card details (header + body form one white card) ---- */
+#singleMessage {
+  position: relative !important;
+  margin: 46px 6px 0 5px !important;
+  background: #fff !important;
+  border-radius: 4px !important;
+  box-shadow: 0 -0.5px 0.5px rgba(0, 0, 0, 0.28), -0.5px 0 0.5px rgba(0, 0, 0, 0.28),
+              0.5px 0 0.5px rgba(0, 0, 0, 0.28) !important;
+}
+#messagepane {
+  background: #fff !important;
+  border-radius: 0 0 4px 4px !important;
+  margin: 0 6px 6px 5px !important;
+  box-shadow: -0.5px 0 0.5px rgba(0, 0, 0, 0.28), 0.5px 0 0.5px rgba(0, 0, 0, 0.28),
+              0 0.5px 0.5px rgba(0, 0, 0, 0.28), 0 1px 1.5px rgba(0, 0, 0, 0.08) !important;
+}
+/* Sender: name only, not the address on a second line */
+#messageHeader .recipient-multi-line-address {
+  display: none !important;
+}
+#messageHeader .recipient-multi-line {
+  display: inline !important;
+}
+
+/* Buttons: only "Reply" + "More" as a small button */
+#messageHeader #hdrForwardButton,
+#messageHeader #hdrArchiveButton,
+#messageHeader #hdrJunkButton,
+#messageHeader #hdrTrashButton,
+#messageHeader #starMessageButton,
+#messageHeader #hdrReplyAllButton,
+#messageHeader #hdrReplyListButton,
+#messageHeader #hdrFollowupButton {
+  display: none !important;
+}
+#messageHeader .header-buttons-container {
+  gap: 0 !important;
+}
+#messageHeader #hdrReplyButton {
+  border-radius: 4px 0 0 4px !important;
+  min-width: 34px !important;
+}
+#messageHeader #hdrReplyButton > .toolbarbutton-text,
+#messageHeader #hdrReplyButton > label {
+  display: none !important;
+}
+#messageHeader #hdrMoreButton {
+  border-radius: 0 4px 4px 0 !important;
+  margin-inline-start: -1px !important;
+}
+#messageHeader #hdrMoreButton > .toolbarbutton-text,
+#messageHeader #hdrMoreButton > label {
+  display: none !important;
+}
+#messageHeader .message-header-view-button {
+  appearance: none !important;
+  background: #fff !important;
+  border: 1px solid #e6e6e6 !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  color: var(--tk-text-subtle) !important;
+  height: 26px !important;
+}
+
+/* Time at the top right, left of the button */
+#messageHeader #dateLabel {
+  position: absolute !important;
+  top: 22px !important;
+  right: 108px !important;
+}
+
+/* No line between header and body (they are one card) */
+#mail-notification-top {
+  border: none !important;
+  background: transparent !important;
+}
+#attachmentView {
+  background: #fff !important;
+  border-radius: 0 0 4px 4px !important;
+  border-block-start: 1px solid #eee !important;
+}
+
+/* ==========================================================================
+   DETAILS
+   ========================================================================== */
+
+/* ---------- Font everywhere ---------- */
+* {
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
+/* ---------- Folder pane ---------- */
+#folderTree,
+#folderTree ul {
+  --indent: calc(12px * var(--depth)) !important;
+}
+#folderTree .container > .name {
+  flex: 0 1 auto !important;
+  min-inline-size: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+/* Counter right after the name, not at the far right */
+#folderTree .container > .folder-count-badge {
+  flex-shrink: 0 !important;
+  margin-inline: 8px 14px !important;
+  padding: 0 4px !important;
+  min-inline-size: 0 !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+  border-radius: 2px !important;
+}
+
+/* Small grey triangle as expand/collapse twisty */
+#folderTree .twisty .twisty-icon {
+  content: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M0 0h8L4 6z' fill='%23777'/></svg>") !important;
+  inline-size: 8px !important;
+  block-size: 6px !important;
+  margin: 0 !important;
+}
+
+/* Icons (monochrome masks) */
+#folderTree .container > .icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  fill: none !important;
+  stroke: none !important;
+  background-color: rgba(35, 31, 32, 0.85) !important;
+  mask: url("icons/folder.svg") center / 16px 16px no-repeat !important;
+}
+#folderTree li[data-folder-type="inbox"] > .container > .icon { mask-image: url("icons/inbox.svg") !important; }
+#folderTree li[data-folder-type="sent"] > .container > .icon { mask-image: url("icons/sent.svg") !important; }
+#folderTree li[data-folder-type="drafts"] > .container > .icon { mask-image: url("icons/drafts.svg") !important; }
+#folderTree li[data-folder-type="trash"] > .container > .icon { mask-image: url("icons/trash.svg") !important; }
+#folderTree li[data-folder-type="junk"] > .container > .icon { mask-image: url("icons/spam.svg") !important; }
+#folderTree li[data-folder-type="archive"] > .container > .icon { mask-image: url("icons/archive.svg") !important; }
+#folderTree li.selected > .container > .icon {
+  --icon-color: var(--tk-blue-dark) !important;
+  background-color: var(--tk-blue-dark) !important;
+}
+
+/* ---------- Message list: row metrics ---------- */
+#threadTree .card-container {
+  padding-inline: 4px 19px !important;
+}
+#threadTree .card-container .thread-card-column {
+  gap: 0 !important;
+  padding-block: 10px 0 !important;
+}
+#threadTree .card-container .thread-card-row,
+#threadTree .card-container .thread-card-dynamic-row {
+  line-height: 22px !important;
+  min-block-size: 22px !important;
+  gap: 0 !important;
+}
+#threadTree .card-container .read-status {
+  content: var(--icon-dot) !important;
+  fill: transparent !important;
+  stroke: transparent !important;
+  margin-inline: 13px 8px !important;
+  margin-block: 3px 0 !important;
+}
+#threadTree .card-container .attachment-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 15px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.55) !important;
+  mask: url("icons/attachment.svg") center / 15px 16px no-repeat !important;
+}
+#threadTree .card-layout.selected.current .card-container .attachment-icon {
+  background-color: #fff !important;
+}
+
+/* Date in the header when the "To" row is hidden (it then lives in the subject container) */
+#messageHeader #dateLabelSubject {
+  position: absolute !important;
+  top: 63px !important;
+  right: 108px !important;
+  font-size: 13px !important;
+  color: var(--tk-text-very-subtle) !important;
+}
+/* paperclip next to the time (moved there by Preview) */
+#threadTree .card-container .thread-card-row > .attachment-icon {
+  margin-inline: 8px 8px !important;
+  align-self: center !important;
+}
+
+/* ==========================================================================
+   COMPOSE WINDOW – white surface, grey labels, thin dividers, blue Send.
+   ========================================================================== */
+#compose-toolbox,
+#MsgHeadersToolbar,
+#FormatToolbox,
+#FormatToolbar,
+#top-gradient-box,
+#extraAddressRowsArea,
+#subject-box,
+#composeContentBox,
+#messageArea {
+  background: #fff !important;
+  background-image: none !important;
+}
+#compose-toolbar-menubar2 {
+  background: #f6f6f6 !important;
+}
+
+/* Send button: blue with white text */
+#button-send {
+  background: var(--tk-blue-dark) !important;
+  color: #fff !important;
+  border: 1px solid var(--tk-blue-dark) !important;
+  border-radius: 3px !important;
+  padding: 2px 12px !important;
+  margin-inline: 6px !important;
+  box-shadow: none !important;
+  fill: #fff !important;
+  stroke: #fff !important;
+}
+#button-send:hover {
+  background: #3187e1 !important;
+}
+#button-send .toolbarbutton-text,
+#button-send label {
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+#button-send .toolbarbutton-icon {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Address rows: grey labels, flat fields, thin divider below */
+#MsgHeadersToolbar .address-label-container label,
+#MsgHeadersToolbar #identityLabel-box label,
+#MsgHeadersToolbar #subjectLabel-box label,
+#MsgHeadersToolbar .aw-firstColBox + * label {
+  color: var(--tk-text-very-subtle) !important;
+  font-weight: 400 !important;
+  font-size: 13px !important;
+}
+#addressRowTo, #addressRowCc, #addressRowBcc, #addressRowReply,
+#top-gradient-box, #subject-box {
+  border-bottom: 1px solid #eeeeee !important;
+  padding-block: 4px !important;
+}
+#toAddrContainer, #ccAddrContainer, #bccAddrContainer, #replyAddrContainer,
+#msgSubjectContainer, #msgSubject {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#MsgHeadersToolbar input, #MsgHeadersToolbar .address-input {
+  color: var(--tk-text) !important;
+  font-size: 14px !important;
+}
+/* Recipient pills */
+#MsgHeadersToolbar .address-pill {
+  background: #f3f3f3 !important;
+  border: 1px solid #e3e3e3 !important;
+  border-radius: 3px !important;
+  color: var(--tk-text) !important;
+  font-weight: 600 !important;
+}
+
+/* Format toolbar: flat, thin line below */
+#FormatToolbox {
+  border-bottom: 1px solid #eeeeee !important;
+}
+
+#threadTree .card-container .thread-card-row .date {
+  padding-inline-start: 6px !important;
+}
+
+/* Send bar at the bottom */
+#composeToolbar2 {
+  position: fixed !important;
+  inset-inline: 0 !important;
+  inset-block-end: 24px !important;
+  block-size: 46px !important;
+  background: #fff !important;
+  border-block-start: 1px solid #e6e6e6 !important;
+  z-index: 20 !important;
+  align-items: center !important;
+}
+#composeContentBox {
+  margin-block-end: 48px !important;
+}
+.address-label-container {
+  justify-content: flex-start !important;
+}
+
+/* ==========================================================================
+   TOOLBAR – icons (masks) and grouped buttons
+   ========================================================================== */
+#unifiedToolbar {
+  background: #fff !important;
+  border-bottom: 1px solid var(--tk-list-border) !important;
+  border-block-end: 1px solid #e3e3e3 !important;
+}
+.unified-toolbar .write-message .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-compose.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .archive .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-archive.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .junk .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-spam.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .delete .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-trash.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .mark-as .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-markasunread.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .move-to .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-movetofolder.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .tag-message .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-tag.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .reply .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-reply.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .reply-all .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-reply-all.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .forward-inline .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-share.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .address-book .button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 16px !important;
+  block-size: 16px !important;
+  background-color: rgba(35, 31, 32, 0.8) !important;
+  mask: url("icons/toolbar-person-sidebar.svg") center / 16px 16px no-repeat !important;
+}
+.unified-toolbar .search-button-icon {
+  content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") !important;
+  inline-size: 14px !important;
+  block-size: 14px !important;
+  background-color: rgba(35, 31, 32, 0.5) !important;
+  mask: url("icons/searchloupe.svg") center / 14px 14px no-repeat !important;
+}
+#unifiedToolbarContent .unified-toolbar-button {
+  background: #fdfdfd !important;
+  border: none !important;
+  border-radius: 3px !important;
+  min-inline-size: 38px !important;
+  block-size: 26px !important;
+  margin-inline: 1px !important;
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.2), 0 -0.5px 0 rgba(0, 0, 0, 0.2),
+              0.5px 0 0 rgba(0, 0, 0, 0.2), -0.5px 0 0 rgba(0, 0, 0, 0.2),
+              0 1px 1px rgba(0, 0, 0, 0.05) !important;
+}
+#unifiedToolbarContent .unified-toolbar-button:hover {
+  background: #f2f2f2 !important;
+}
+#unifiedToolbarContent .search-bar {
+  max-inline-size: 450px !important;
+}
+
+/* The header's "More" button (otherActionsButton): icon only */
+#messageHeader #otherActionsButton {
+  min-width: 0 !important;
+  padding-inline: 8px !important;
+}
+/* only the button's OWN label – not the items of the menu inside it */
+#messageHeader #otherActionsButton > .toolbarbutton-text,
+#messageHeader #otherActionsButton > label,
+#messageHeader #otherActionsButton > .toolbarbutton-menu-dropmarker {
+  display: none !important;
+}
+
+/* Toolbar buttons are grouped */
+#unifiedToolbarContent :is(.archive, .junk, .delete, .move-to, .tag-message) .unified-toolbar-button,
+#unifiedToolbarContent .unified-toolbar-button:is(.archive, .junk, .delete, .move-to, .tag-message) {
+  margin-inline: 0 !important;
+}
+#unifiedToolbarContent :is(.archive, .move-to) .unified-toolbar-button,
+#unifiedToolbarContent .unified-toolbar-button:is(.archive, .move-to) {
+  border-radius: 3px 0 0 3px !important;
+}
+#unifiedToolbarContent :is(.junk) .unified-toolbar-button,
+#unifiedToolbarContent .unified-toolbar-button:is(.junk) {
+  border-radius: 0 !important;
+}
+#unifiedToolbarContent :is(.delete, .tag-message) .unified-toolbar-button,
+#unifiedToolbarContent .unified-toolbar-button:is(.delete, .tag-message) {
+  border-radius: 0 3px 3px 0 !important;
+}
+#unifiedToolbarContent .unified-toolbar-button[disabled] {
+  opacity: 0.45 !important;
+}
+
+/* Hide status bar buttons (calendar invitations, Today pane, etc.) */
+#status-bar #calendar-invitations-panel,
+#status-bar #calendar-show-todaypane-panel,
+#status-bar #status-privacy,
+#status-bar #status-priority,
+#status-bar #status-status,
+#status-bar #status-freebusy {
+  display: none !important;
+}
+
+/* ---------- Menus (popups): white, rounded, blue highlight ---------- */
+menupopup, panel {
+  --panel-background: #fff;
+  --panel-color: var(--tk-text);
+  --panel-border-color: rgba(0, 0, 0, 0.14);
+  --panel-border-radius: 4px;
+  --panel-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  --arrowpanel-background: #fff;
+  --arrowpanel-color: var(--tk-text);
+  --arrowpanel-border-color: rgba(0, 0, 0, 0.14);
+  --arrowpanel-border-radius: 4px;
+}
+menupopup > :is(menuitem, menu) {
+  font-size: 13px !important;
+  padding-block: 5px !important;
+}
+menupopup > :is(menuitem, menu)[_moz-menuactive="true"]:not([disabled="true"]) {
+  background-color: var(--tk-blue-dark) !important;
+  color: #fff !important;
+}
+
+/* "N replies" button in a selected (blue) row: white outline and text instead of light grey */
+#threadTree .card-layout.selected button.twisty.thread-card-button,
+#threadTree .card-layout.selected button.twisty.thread-card-button:hover {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  color: #fff !important;
+}
+#threadTree .card-layout.selected button.twisty .thread-replies {
+  color: #fff !important;
+}
+#threadTree .card-layout.selected button.twisty img {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* ==========================================================================
+   THREADS IN THE READING PANE – the other messages as grey bars above the
+   open message (added by "Preview for Thunderbird")
+   ========================================================================== */
+#tk-thread {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  margin: 46px 6px 0 5px;
+}
+#tk-thread .tk-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 19px 20px 10px;
+  background: #fafafa;
+  border-radius: 4px;
+  box-shadow: 0 0 0.5px rgba(0, 0, 0, 0.28), 0 1px 1.5px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  line-height: 21px;
+  color: rgba(35, 31, 32, 0.5);
+  cursor: default;
+}
+#tk-thread .tk-bar:hover {
+  background: #f4f4f4;
+}
+#tk-thread .tk-from {
+  flex: none;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+#tk-thread .tk-snip {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#tk-thread .tk-date {
+  flex: none;
+}
+#tk-thread .tk-pill-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 22px;
+  background: repeating-linear-gradient(to bottom, #e6e6e6 0, #e6e6e6 1px, #f6f6f6 1px, #f6f6f6 4px);
+}
+#tk-thread .tk-pill {
+  padding: 0 14px;
+  line-height: 20px;
+  border: 1px solid #ddd;
+  border-radius: 15px;
+  background: #fff;
+  font-size: 13px;
+  color: rgba(35, 31, 32, 0.5);
+  cursor: default;
+}
+/* The card gets 6px of space above; the subject moves up above the bars */
+#messagepanebox.tk-has-thread #singleMessage {
+  margin-top: 6px !important;
+}
+#messagepanebox.tk-has-thread #headerSubjectSecurityContainer {
+  top: calc(-47px - var(--tk-bars-h, 0px)) !important;
+}
+
+/* Counters only on inboxes – not on Drafts, Sent, Archive, Junk, Trash, accounts, etc. */
+#folderTree li:not([data-folder-type="inbox"]) > .container > .folder-count-badge {
+  display: none !important;
+}

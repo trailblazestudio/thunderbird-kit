@@ -1,0 +1,31 @@
+{
+  "manifest_version": 2,
+  "name": "Preview for Thunderbird",
+  "version": "1.0.0",
+  "description": "Adds a preview line to the message list and shows threads as one conversation.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "preview@thunderbird-kit",
+      "strict_min_version": "128.0"
+    }
+  },
+  "experiment_apis": {
+    "tkPreview": {
+      "schema": "schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "tkPreview"
+          ]
+        ],
+        "script": "api.js",
+        "events": [
+          "startup"
+        ]
+      }
+    }
+  }
+}

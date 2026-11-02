@@ -1,0 +1,19 @@
+[
+  {
+    "namespace": "tkTracking",
+    "functions": [
+      {
+        "name": "setTracking",
+        "type": "function",
+        "async": true,
+        "description": "Open data from the server: JSON { messageId: { sentAt, opens: [...] } }",
+        "parameters": [
+          {
+            "name": "json",
+            "type": "string"
+          }
+        ]
+      }
+    ]
+  }
+]

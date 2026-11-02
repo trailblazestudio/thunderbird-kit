@@ -1,0 +1,60 @@
+/* Base style for message bodies in the reading pane. The message's own styles still win. */
+
+@-moz-document url-prefix("imap"), url-prefix("mailbox"), url-prefix("news"), url-prefix("mailto") {
+  :root {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(150, 150, 150, 0.33) transparent !important;
+  }
+  html {
+    padding: 10px 20px 14px !important;   /* .message-item-area: 20px sider, 10px top */
+    box-sizing: border-box !important;
+    background: #fff !important;
+  }
+  html, body {
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: #231f20;
+    background-color: transparent;
+    word-wrap: break-word;
+  }
+  body {
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: auto;
+    padding: 0;
+  }
+  p {
+    margin: 0;
+    padding: 0;
+  }
+  strong, b {
+    font-weight: 600;
+  }
+  /* plain text: same font as everything else, not monospace */
+  .moz-text-plain, .moz-text-flowed, pre.moz-quote-pre, div.moz-text-plain pre {
+    font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-size: 14.5px !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word;
+  }
+  blockquote {
+    border-left: 2px solid #eee;
+    margin: 0;
+    padding: 0 0 0 10px;
+  }
+  a { color: #419bf9; }
+  a:hover { color: #3187e1; }
+  a:visited { color: #0e81f8; }
+  a img { border-bottom: 0; }
+  img { border: 0; }
+}
+
+/* Compose editor: Thunderbird draws a red dotted border around borderless
+   tables/cells so they stay visible. Make it transparent (keeping the space),
+   but leave cells that have a real border alone. */
+@-moz-document url-prefix("about:blank") {
+  table:is([empty-cells], [border="0"], :not([border])):not([style*="border"]),
+  table:is([border="0"], :not([border])) > tr > :is(td, th):not([style*="border"]),
+  table:is([border="0"], :not([border])) > :is(thead, tbody, tfoot) > tr > :is(td, th):not([style*="border"]) {
+    border: 1px solid transparent !important;
+  }
+}

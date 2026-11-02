@@ -1,0 +1,7 @@
+dist/
+addons/tracking/config.js
+server/wrangler.toml
+server/.dev.vars
+server/.wrangler/
+node_modules/
+api-key.txt

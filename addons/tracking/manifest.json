@@ -1,0 +1,46 @@
+{
+  "manifest_version": 2,
+  "name": "Tracking for Thunderbird",
+  "version": "1.0.0",
+  "description": "See when your sent messages are opened (invisible pixel served by your own server).",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tracking@thunderbird-kit",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "compose",
+    "__TRACKING_URL__/*"
+  ],
+  "background": {
+    "scripts": [
+      "config.js",
+      "background.js"
+    ]
+  },
+  "compose_action": {
+    "default_title": "Open tracking is on",
+    "default_icon": "icons/eye-on.svg",
+    "default_area": "maintoolbar"
+  },
+  "experiment_apis": {
+    "tkTracking": {
+      "schema": "schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "tkTracking"
+          ]
+        ],
+        "script": "api.js",
+        "events": [
+          "startup"
+        ]
+      }
+    }
+  }
+}
