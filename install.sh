@@ -57,7 +57,7 @@ PREFS
 fi
 echo "Theme installed."
 
-if ! fc-list | grep -qi "Inter"; then
+if [ -z "$(fc-list :family=Inter)" ]; then
   echo "Note: the Inter font is missing – install it with: sudo apt install fonts-inter"
 fi
 
