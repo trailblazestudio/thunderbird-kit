@@ -16,11 +16,12 @@ A light, calm theme for Thunderbird – with message previews, conversation thre
 
 - Thunderbird 128 or newer (tested on 153 ESR), on Linux
 - A Thunderbird build that allows unsigned add-ons (e.g. the Ubuntu/Mint package). Otherwise set `xpinstall.signatures.required` to `false` in the Config Editor.
-- `git`, `zip` and the [Inter](https://rsms.me/inter/) font (`sudo apt install fonts-inter`)
+- `git`, `zip` and the [Inter](https://rsms.me/inter/) font
 
 ## Install
 
 ```bash
+sudo apt install git zip fonts-inter
 git clone https://github.com/trailblazestudio/thunderbird-kit.git
 cd thunderbird-kit
 ./install.sh        # close Thunderbird first
@@ -71,6 +72,15 @@ cp addons/tracking/config.example.js addons/tracking/config.js
 ```
 
 Install `dist/tracking-for-thunderbird.xpi`. It contains your key, so don't share it.
+
+### Using it on more computers
+
+`config.js` is not in git. Copy it to each computer before running `./install.sh`, and they all use the same server and show the same opens:
+
+```bash
+scp other-computer:thunderbird-kit/addons/tracking/config.js addons/tracking/
+./install.sh
+```
 
 ### Good to know
 
